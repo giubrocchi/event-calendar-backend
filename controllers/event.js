@@ -67,9 +67,9 @@ function isEventOverlapped(newEvent = {}, eventList = {}) {
     const eventStartDate = new Date(event.startDate);
     const eventFinishDate = new Date(event.finishDate);
 
-    if (newEventStartDate > eventStartDate && newEventStartDate < eventFinishDate) return true;
-    if (newEventFinishDate > eventStartDate && newEventFinishDate < eventFinishDate) return true;
-    if (newEventStartDate < eventStartDate && newEventFinishDate > eventFinishDate) return true;
+    if (newEventStartDate >= eventStartDate && newEventStartDate <= eventFinishDate) return true;
+    if (newEventFinishDate >= eventStartDate && newEventFinishDate <= eventFinishDate) return true;
+    if (newEventStartDate <= eventStartDate && newEventFinishDate >= eventFinishDate) return true;
 
     return false;
   });
