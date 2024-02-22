@@ -60,7 +60,7 @@ async function getEventsFromUser(userId) {
   return result;
 }
 
-function isEventOverlapped(newEvent = {}, eventList = {}) {
+function isEventOverlapped(newEvent = {}, eventList = []) {
   const newEventStartDate = new Date(newEvent.startDate);
   const newEventFinishDate = new Date(newEvent.finishDate);
   const overlappingEvents = eventList.filter((event) => {
