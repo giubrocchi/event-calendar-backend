@@ -1,20 +1,26 @@
-const { MongoClient, ObjectId } = require('mongodb');
+const { MongoClient } = require('mongodb');
 const { mongoUri, dbName } = require('../databaseInfo.js');
 const passwordManager = require('../passwordManager.js');
 const collectionName = 'user';
 
 exports.create = async (req, res) => {
-  const { username, password } = req.body;
+  const { username, email, password } = req.body;
 
-  if (!username || !password) {
+  if (!username || !email || !password) {
     res.status(400).send({ message: 'Content can not be empty!' });
     return;
   }
 
-  const isSignedUp = await getUserByUsername(username);
+  const isUsernameSignedUp = await getUserByUsername(username);
+  const isEmailSignedUp = await getUserByEmail(email);
 
-  if (isSignedUp) {
+  if (isUsernameSignedUp) {
     res.status(440).send({ message: 'Username already signed up!' });
+    return;
+  }
+
+  if (isEmailSignedUp) {
+    res.status(440).send({ message: 'E-mail already signed up!' });
     return;
   }
 
@@ -26,7 +32,7 @@ exports.create = async (req, res) => {
     const database = client.db(dbName);
     const collection = database.collection(collectionName);
     const hashedPassword = passwordManager.encrypt(password);
-    const result = await collection.insertOne({ username, password: hashedPassword });
+    const result = await collection.insertOne({ username, email, password: hashedPassword });
 
     res.send(result);
   } catch (err) {
@@ -56,9 +62,7 @@ async function getUserByUsername(username) {
   }
 }
 
-exports.login = async (req, res) => {
-  const { username, password } = req.body;
-
+async function getUserByEmail(email) {
   const client = new MongoClient(mongoUri);
 
   try {
@@ -66,20 +70,20 @@ exports.login = async (req, res) => {
 
     const database = client.db(dbName);
     const collection = database.collection(collectionName);
-    const result = await collection.findOne({ username });
-    const isCorrectPassword = passwordManager.compare(password, result?.password);
+    const result = await collection.findOne({ email });
 
-    if (isCorrectPassword) res.send({ login: true, id: result._id });
-    else res.status(441).send('Wrong username or password');
-  } catch (err) {
-    res.status(500).send('Error authenticating');
-  } finally {
     await client.close();
-  }
-};
 
-exports.getUser = async (req, res) => {
-  const { id } = req.params;
+    return result;
+  } catch (err) {
+    await client.close();
+
+    return null;
+  }
+}
+
+exports.login = async (req, res) => {
+  const { usernameOrEmail, password } = req.body;
 
   const client = new MongoClient(mongoUri);
 
@@ -88,9 +92,13 @@ exports.getUser = async (req, res) => {
 
     const database = client.db(dbName);
     const collection = database.collection(collectionName);
-    const result = await collection.findOne({ _id: new ObjectId(id) });
+    const resultByUsername = await collection.findOne({ username: usernameOrEmail });
+    const resultByEmail = await collection.findOne({ email: usernameOrEmail });
+    const user = resultByUsername ?? resultByEmail;
+    const isCorrectPassword = passwordManager.compare(password, user?.password);
 
-    res.send({ ...result, password: null });
+    if (isCorrectPassword) res.send({ login: true, id: user._id });
+    else res.status(441).send('Wrong username or password');
   } catch (err) {
     res.status(500).send('Error authenticating');
   } finally {
