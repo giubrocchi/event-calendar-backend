@@ -4,6 +4,7 @@ module.exports = (app) => {
 
   router.post('/', user.create);
   router.post('/login', user.login);
+  router.get('/:id', user.getUser);
 
   app.use('/user', router);
 };
